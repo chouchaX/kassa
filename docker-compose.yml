@@ -1,0 +1,57 @@
+services:
+  traefik:
+    image: traefik:v3.0       # Убедитесь, что используете последнюю стабильную версию Traefik
+    command:
+      - "--api.insecure=true"                                  # Открывает веб-интерфейс Traefik Dashboard
+      - "--providers.docker=true"                              # Включает интеграцию с Docker
+      - "--entrypoints.web.address=:80"                        # Входная точка для HTTP (порт 80)
+      - "--entrypoints.websecure.address=:443"                 # Входная точка для HTTPS (порт 443)
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"  # Перенаправление с HTTP на HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"  # Использование HTTPS для перенаправления
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=ayakostiv@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--log.level=DEBUG"
+    ports:
+      - "80:80"                    # HTTP порт для доступа к приложениям
+      - "443:443"                  # HTTPS порт для доступа к приложениям
+      - "8000:8080"                # Traefik Dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro" # Для взаимодействия с Docker
+      - "traefik-certificates:/letsencrypt"            # Хранение сертификатов
+    restart: unless-stopped
+    networks:
+      - web
+
+  main:
+    image: kassa
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: [ "yarn", "start" ]
+    env_file: .env
+    environment:
+      PORT: $PORT            # Порт, на котором будет слушать сервер
+      HOST: $HOST            # Хост сервера
+      CORS_ORIGIN: $CORS_ORIGIN # Настройки CORS
+      COMMON_RATE_LIMIT_WINDOW_MS: $COMMON_RATE_LIMIT_WINDOW_MS # Окно для лимита запросов (мс)
+      COMMON_RATE_LIMIT_MAX_REQUESTS: $COMMON_RATE_LIMIT_MAX_REQUESTS # Лимит запросов в окно
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"                    # Включение маршрутизации для этого сервиса
+      - "traefik.http.routers.kassa.rule=Host(`server.mergersandacquis.com`)"  # Правило маршрутизации (замените `kassa.local` на свой домен)
+      - "traefik.http.services.kassa.loadbalancer.server.port=8080" # Порт, на котором работает сервис
+      - "traefik.http.routers.kassa.entrypoints=web,websecure"          # Входная точка для HTTPS
+      - "traefik.http.routers.kassa.tls.certresolver=myresolver"    # Настройка TLS
+    networks:
+      - web
+    ports:
+      - "8080:8080"   # Внутренний порт вашего приложения
+
+volumes:
+  traefik-certificates:    # Объем для хранения сертификатов Traefik
+
+networks:
+  web:
+    external: true          # Создание внешней сети для взаимодействия сервисов

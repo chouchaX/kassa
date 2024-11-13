@@ -4,6 +4,12 @@ import { app, logger } from "@/server";
 const server = app.listen(env.PORT, () => {
   const { NODE_ENV, HOST, PORT } = env;
   logger.info(`Server (${NODE_ENV}) running on port http://${HOST}:${PORT}`);
+  console.log("Environment Variables:", {
+    NODE_ENV: env.NODE_ENV,
+    HOST: env.HOST,
+    PORT: env.PORT,
+    CORS_ORIGIN: env.CORS_ORIGIN,
+  });
 });
 
 const onCloseSignal = () => {
