@@ -5,17 +5,14 @@ import { commonValidations } from "@/common/utils/commonValidation";
 
 extendZodWithOpenApi(z);
 
-export type User = z.infer<typeof UserSchema>;
-export const UserSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  email: z.string().email(),
-  age: z.number(),
+export type Payment = z.infer<typeof PaymentSchema>;
+export const PaymentSchema = z.object({
+  amount: z.number(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
 
-// Input Validation for 'GET users/:id' endpoint
+// Input Validation for 'GET payment/:amount' endpoint
 export const GetUserSchema = z.object({
-  params: z.object({ id: commonValidations.id }),
+  params: z.object({ amount: commonValidations.amount }),
 });
